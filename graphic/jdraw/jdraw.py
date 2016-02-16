@@ -39,8 +39,10 @@ from taurus.core.util.containers import CaselessDict
 from taurus.qt.qtgui.graphic import TaurusBaseGraphicsFactory, \
     TaurusGraphicsScene, TaurusGraphicsItem, parseTangoUri, \
     TaurusTextAttributeItem,TaurusTextStateItem
+from taurus.qt.qtgui.plot import CurveAppearanceProperties
 
 from PyQt4.QtGui import QPushButton
+import PyQt4.Qwt5 as Qwt
 
 
 LINESTYLE_JDW2QT = { 0: Qt.Qt.SolidLine,
@@ -150,21 +152,8 @@ class TaurusJDrawGraphicsFactory(Singleton, TaurusBaseGraphicsFactory, Logger):
         return None
 
 
-    #start Tomek
 
-    def getBarObj(self, params):
-        item = self.getGraphicsItem('Bar', params)
-        x1, y1, x2, y2 = params.get('summit')
-        width = x2 - x1
-        height = y2 - y1
-        #print "\n\n height: ", height
-        #item.setBar(x1, y1, width, height)
-        style = params.get('fillStyle')
-        #print "Style: ", style
-        #item.setSelectionStyle(style)
-
-        return item
-
+    #start Tomek ?
     def getAxisObj(self, params):
         item = self.getGraphicsItem('Rectangle', params)
         x1, y1, x2, y2 = params.get('summit')
@@ -286,67 +275,7 @@ class TaurusJDrawGraphicsFactory(Singleton, TaurusBaseGraphicsFactory, Logger):
             item.setPlainText(Qt.QString(txt))
             item._currText = txt
 
-    def readButtonObj2(self, item, params):
-        origin = params.get('origin')
-        item.setPos(origin[0], origin[1])
 
-        summit = params.get('summit')
-        x, y = summit[0] - origin[0], summit[1] - origin[1]
-        width, height = summit[2] - summit[0], summit[3] - summit[1]
-        print "TTTTKKK"
-
-        item.setRect(x, y, width, height)
-
-
-    def readButtonObj(self, item, params):
-        origin = params.get('origin')
-        item.setPos(origin[0], origin[1])
-
-        summit = params.get('summit')
-        x, y = summit[0] - origin[0], summit[1] - origin[1]
-        width, height = summit[2] - summit[0], summit[3] - summit[1]
-        print "TTTTKKK"
-
-        item.setRect(x, y, width, height)
-
-	'''
-        # it is parsed as a float
-        vAlignment = int(params.get('vAlignment', 0))
-        hAlignment = int(params.get('hAlignment', 0))
-        assert(vAlignment in VALIGNMENT.keys())
-        assert(hAlignment in ALIGNMENT.keys())
-        vAlignment = VALIGNMENT[vAlignment]
-        hAlignment = ALIGNMENT[hAlignment]
-        item.setAlignment(hAlignment | vAlignment)
-        print "TTTT"
-
-        fnt = params.get('font',None)
-        if fnt:
-            family,style,size = fnt
-            f = Qt.QFont(family, int(.85*size), Qt.QFont.Light, False)
-            f.setStyleHint(TEXTHINT_JDW2QT.get(family, Qt.QFont.AnyStyle))
-            f.setStyleStrategy(Qt.QFont.PreferMatch)
-            if style == 1:
-                f.setWeight(Qt.QFont.DemiBold)
-            elif style == 2:
-                f.setItalic(True)
-            elif style == 3:
-                f.setWeight(Qt.QFont.DemiBold)
-                f.setItalic(True)
-            #TODO: Improve code in order to be able to set a suitable font
-            item.setFont(f)
-        fg = params.get("foreground", (0,0,0))
-        color = Qt.QColor(fg[0],fg[1],fg[2])
-	print "\n\n COLOR: ", color
-        item.setDefaultTextColor(color)
-	#item.setValidBackground(color)
-
-        txt = params.get('text')
-        if txt:
-            if any(isinstance(txt,t) for t in (list,tuple,set)): #Parsing several lines of text
-                txt = '\n'.join(txt)
-            item.setPlainText(Qt.QString(txt))
-            item._currText = txt'''
 
     def getGroupObj(self,params):
         item = self.getGraphicsItem('Group',params)
@@ -364,32 +293,23 @@ class TaurusJDrawGraphicsFactory(Singleton, TaurusBaseGraphicsFactory, Logger):
         return item
 
     def getSwingObjectObj(self,params):
-        #item = self.getGraphicsItem('SwingObject', params)
-        #s = params.get('summit')
-        #x1, y1 = s[0], s[1]
-        #item.setPos(x1,y1)
 
         className = params.get('className')
+        print "\n\n classname: ", className
         if className == "fr.esrf.tangoatk.widget.attribute.SimpleScalarViewer":
-            print "\n\n\n TOMEK - TO NIE PRZYCISK \n\n\n"
             item = self.getGraphicsItem('SwingObject', params)
             s = params.get('summit')
             x1, y1 = s[0], s[1]
             item.setPos(x1,y1)
             self.readSimpleScalarViewerObj(item, params)
-        elif className == "fr.esrf.tangoatk.widget.command.VoidVoidCommandViewer":
-            print "\n\n\n TOMEK - PRZYCISK \n\n\n"
-            #item = self.getGraphicsItem('SwingObject', params)
-            #s = params.get('summit')
-            #x1, y1 = s[0], s[1]
-            #item.setPos(x1,y1)
+        elif className == "fr.esrf.tangoatk.widget.command.Button":
             item = self.getGraphicsItem('Button', params)
             x1, y1, x2, y2 = params.get('summit')
             width = x2 - x1
             height = y2 - y1
             ext = params.get('extensions')
             txt = ext.get('text')
-            #print "\n\nTEXTtext: ", text
+            txt = "QButton"
             item.setText(txt)
             item.setPos(x1, x2, width, height)
             #print "\n\n height: ", height
@@ -402,8 +322,7 @@ class TaurusJDrawGraphicsFactory(Singleton, TaurusBaseGraphicsFactory, Logger):
             #item.setSelectionStyle(style)
 
             #self.readVoidVoidCommandViewerObj(item, params)
-        elif className == "fr.esrf.tangoatk.widget.attribute.NumberScalarComboEditor":
-            print "\n\n\n TOMEK - PRZYCISK \n\n\n"
+        elif className == "fr.esrf.tangoatk.widget.attribute.StringScalarComboEditor":
             item = self.getGraphicsItem('Combo', params)
             #s = params.get('summit')
             #x1, y1 = s[0], s[1]
@@ -419,7 +338,24 @@ class TaurusJDrawGraphicsFactory(Singleton, TaurusBaseGraphicsFactory, Logger):
             item.addItem("select")
             item.addItem("me")
 
-            item.setPos(x1, x2, width, height)
+            item.setPos(x1, y1, width, height)
+            #item.setPos(x1,y1)
+
+        elif className == "fr.esrf.tangoatk.widget.attribute.NumberScalarComboEditor":
+            item = self.getGraphicsItem('Combo', params)
+            #s = params.get('summit')
+            #x1, y1 = s[0], s[1]
+            x1, y1, x2, y2 = params.get('summit')
+            width = x2 - x1
+            height = y2 - y1
+            item.addItem('0.0')
+            item.addItem('0.1')
+            item.addItem('0.2')
+            item.addItem('0.3')
+            item.addItem('0.4')
+
+
+            item.setPos(x1, y1, width, height)
             #item.setPos(x1,y1)
 
 
@@ -430,7 +366,81 @@ class TaurusJDrawGraphicsFactory(Singleton, TaurusBaseGraphicsFactory, Logger):
             x1, y1, x2, y2 = params.get('summit')
             width = x2 - x1
             height = y2 - y1
-            #item.setPos(x1, x2, width, height)
+            item.setPos(x1, y1, width, height)
+
+        elif className == "fr.esrf.tangoatk.widget.attribute.NumberSpectrumViewer":
+            item = self.getGraphicsItem('TaurusPlot', params)
+            s = params.get('summit')
+            x1, y1 = s[0], s[1]
+            item.setPos(x1, y1)
+            background = params.get('background')
+            axis = params.get('name')
+            item.showLegend(True)
+            item.setLegendPosition(2)
+            item.autoScaleAllAxes()
+            #item.setAxisScale(axis, 0, 100)
+            color = Qt.QColor(255, 0, 0, 127)
+            item.setGridColor(color) #kolor siatki
+            #item.setGridWidth(1)
+            #item.resetGridColor()
+            #item.setXIsTime(True)
+            #item.applyAxesConfig({"xIsTime":0, "xDyn":0, "xMin": 0, "xMax": 200, "y1Min": 0, "y1Max": 300, "y2Min": 0, "y2Max": 100, "xMode":0, "y1Mode":0, "y2Mode": 0})
+            item.setTitle("aaaaaaaaaaaa")
+            #item.setPen("red")
+            #self.curveR = Qwt.QwtPlotCurve("up")
+            #self.curveR.setPen(Qt.QPen(Qt.Qt.red))
+            item.setCanvasBackground(Qt.Qt.white)
+
+
+
+        elif className == "fr.esrf.tangoatk.widget.attribute.NumberSpectrumViewer2":
+            item = self.getGraphicsItem('TaurusTrend', params)
+            s = params.get('summit')
+            x1, y1 = s[0], s[1]
+            item.setPos(x1, y1)
+
+        elif className == "fr.esrf.tangoatk.widget.attribute.TaurusForm":
+            item = self.getGraphicsItem('TaurusForm', params)
+            s = params.get('summit')
+            x1, y1 = s[0], s[1]
+            item.setPos(x1, y1)
+
+        elif className == "fr.esrf.tangoatk.widget.attribute.TaurusValueLineEdit":
+            item = self.getGraphicsItem('TaurusValueLineEdit', params)
+            s = params.get('summit')
+            x1, y1 = s[0], s[1]
+            item.setPos(x1, y1)
+
+        elif className == "fr.esrf.tangoatk.widget.attribute.TaurusLabel":
+            item = self.getGraphicsItem('TaurusLabel', params)
+            item.setPos(100, 100, 100, 100)
+            item.setText("Tomek")
+
+        elif className == "fr.esrf.tangoatk.widget.attribute.TaurusLed":
+            item = self.getGraphicsItem('TaurusLed', params)
+            s = params.get('summit')
+            x1, y1 = s[0], s[1]
+            item.setPos(x1, y1)
+
+        elif className == "fr.esrf.tangoatk.widget.command.VoidVoidCommandViewer":
+            item = self.getGraphicsItem('TaurusCommandButton', params)
+            item.setCustomText("Command")
+            s = params.get('summit')
+            x1, y1 = s[0], s[1]
+            item.setPos(x1, y1)
+
+        elif className == "fr.esrf.tangoatk.widget.attribute.BooleanScalarCheckBoxViewer":
+            item = self.getGraphicsItem('CheckBox', params)
+            s = params.get('summit')
+            x1, y1 = s[0], s[1]
+            item.setPos(x1, y1)
+
+        elif className == "fr.esrf.tangoatk.widget.attribute.DigitalNumberScalarViewer":
+            item = self.getGraphicsItem('LCDNumber', params)
+            s = params.get('summit')
+            x1, y1 = s[0], s[1]
+            item.setPos(x1, y1)
+            item.display(10)
 
         return item
 

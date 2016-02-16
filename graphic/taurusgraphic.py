@@ -51,6 +51,11 @@ from taurus.external.qt import Qt
 from taurus.qt.qtgui.base import TaurusBaseComponent
 from taurus.qt.qtgui.util import (QT_ATTRIBUTE_QUALITY_PALETTE, QT_DEVICE_STATE_PALETTE,
                                   ExternalAppAction, TaurusWidgetFactory)
+from taurus.qt.qtgui.plot import TaurusPlot, TaurusTrend
+from taurus.qt.qtgui.panel import TaurusForm
+from taurus.qt.qtgui.input import TaurusValueLineEdit
+from taurus.qt.qtgui.display import TaurusLabel, TaurusLed, TaurusLCD
+from taurus.qt.qtgui.button import TaurusCommandButton
 
 SynopticSelectionStyle = Enumeration("SynopticSelectionStyle", [
     # A blue ellipse is displayed around the selected objects
@@ -307,7 +312,6 @@ class TaurusGraphicsScene(Qt.QGraphicsScene):
 
         :return: (list) items
         """
-        print "\n\nname: ", item_name, "name \n"
         strict = (not self.ANY_ATTRIBUTE_SELECTS_DEVICE) if strict is None else strict
         alnum = '(?:[a-zA-Z0-9-_\*]|(?:\.\*))(?:[a-zA-Z0-9-_\*]|(?:\.\*))*'
         target = str(item_name).strip().split()[0].lower().replace('/state','') #If it has spaces only the first word is used
@@ -325,8 +329,6 @@ class TaurusGraphicsScene(Qt.QGraphicsScene):
                 result.extend(self._itemnames[k])
         return result
 
-    def accept(self):
-        print "\n Nacisnales na button \n"
 
     def getItemByPosition(self,x,y):
         """ This method will try first with named objects; if failed then with itemAt """
@@ -342,42 +344,6 @@ class TaurusGraphicsScene(Qt.QGraphicsScene):
                 self.debug('getItemByPosition(%d,%d): adding GraphicsItem %s'%(x,y,o))
                 itemsAtPos.append(o)
             else: self.debug('getItemByPosition(%d,%d): object ignored, %s'%(x,y,o))
-        #QLineEdit
-        '''
-        for o in (i for v in self._itemnames.values() for i in v if (isinstance(i, QPushButton) or isinstance(i, QLineEdit) or isinstance(i, QComboBox))):
-            print "\n Obiekt: ", o, o._x, o._y, o._width, o._height
-
-            #o.move(10, 100)
-
-            if x>o._x and x<(o._x + o._width) and y>o._y and y< (o._y + o._height):
-                itemsAtPos.append(o)
-                print "\n Button clicked;;"
-
-                def acept():
-                    print "\n\n acept \n\n"
-                #o.connect(o, Qt.SIGNAL('cked()'), acept)
-
-                #o.hidePopup()
-                #o.addItem("Sule")
-                if isinstance(o, QComboBox):
-                    o.showPopup()
-                if isinstance(o, QLineEdit):
-                    o.clear()
-                    o.echoMode()
-                    #o.setText("test")
-            #o.clicked.connect(self.accept)
-                #if o.currentItemChanged():
-        '''
-
-        '''
-            if not hasattr(o,'getExtensions'):
-                self.debug('getItemByPosition(%d,%d): adding Qt primitive %s'%(x,y,o))
-                itemsAtPos.append(o)
-            elif not o.getExtensions().get('noSelect'):
-                self.debug('getItemByPosition(%d,%d): adding GraphicsItem %s'%(x,y,o))
-                itemsAtPos.append(o)
-            else: self.debug('getItemByPosition(%d,%d): object ignored, %s'%(x,y,o))
-        '''
 
         if itemsAtPos:
             obj = itemsAtPos[-1]
@@ -477,7 +443,7 @@ class TaurusGraphicsScene(Qt.QGraphicsScene):
                         menu.exec_(Qt.QPoint(mouseEvent.screenPos().x(),mouseEvent.screenPos().y()))
                     del menu
         except Exception:
-            print "\n\n wrn"
+            print "\n\n exception wrn"
             #self.warning( traceback.format_exc())
 
     def mouseDoubleClickEvent(self,event):
@@ -897,7 +863,7 @@ class QGraphicsTextBoxing(Qt.QGraphicsItemGroup):
         """Compute the text location"""
         if self.__layoutValide:
             return
-        self._text.setPlainText("tomek")
+        #self._text.setPlainText("tomek")
         rect = self._rect.rect()
         width, height = rect.width(), rect.height()
         textRect = self._text.boundingRect()
@@ -1050,6 +1016,7 @@ class TaurusGraphicsItem(TaurusBaseComponent):
     #def fireEvent(self, type):
     def fireEvent(self, evt_src = None, evt_type = None, evt_value = None):
         """fires a value changed event to all listeners"""
+        print "\n\nFIRE EVENT \n"
         self.updateStyle()
 
     def updateStyle(self):
@@ -1098,7 +1065,7 @@ class TaurusGraphicsAttributeItem(TaurusGraphicsItem):
         return unit
 
     def updateStyle(self):
-        #print "\n\n W UPDATE STYLE I"
+        print "\n\n W UPDATE STYLE I"
 
         v = self.getModelValueObj()
         print "\n\n V: ", v
@@ -1117,15 +1084,15 @@ class TaurusGraphicsAttributeItem(TaurusGraphicsItem):
             except:
                 self.warning('In TaurusGraphicsAttributeItem(%s).updateStyle(%s): colors failed!'%(self._name,self._currText))
                 self.warning(traceback.format_exc())
-        #quality = v.quality
+        quality = v.quality
         if quality == PyTango.AttrQuality.ATTR_VALID:
             if v and self._userFormat:
                 text = self._userFormat % (v.value)
             else:
-                #print "\n przed display: ", self._currText
+                print "\n przed display: ", self._currText
 
                 text = self._currText = self.getDisplayValue()
-                #print "\n po display: ", self._currText
+                print "\n po display: ", self._currText
             if self._unitVisible:
                 text = text + ' ' + self.getUnit()
             self._currText = text.decode('unicode-escape')
@@ -1361,6 +1328,7 @@ class TaurusTextAttributeItem(QGraphicsTextBoxing, TaurusGraphicsAttributeItem):
         else:
             #self._currText = 'TY'
             self.setPlainText(self._currText or '')
+            #self.display(self._currText or '')
         #if self.className == "fr.esrf.tangoatk.widget.attribute.SimpleScalarViewer":
             QGraphicsTextBoxing.paint(self, painter, option, widget)
 
@@ -1388,15 +1356,7 @@ class QPushButton(Qt.QPushButton, TaurusGraphicsStateItem): #, Qt.QGraphicsItemG
 
     def mousePressEvent(self,event):
         print "\n\n SUPER!!!! Button!!"
-        #super(QPushButton, self).mousePressEvent(event)
-        #event.accept()
-        #print "\n Overloaded event: ", event, "\n"
 
-
-        #button.show()
-        #self.setText("Tomke")
-        #self.move(200, 200)
-        #self.setPos(100, 100)
     def setPen(self, pen):
         print "\n\n PEN: ", pen, "\n"
 
@@ -1412,9 +1372,6 @@ class QPushButton(Qt.QPushButton, TaurusGraphicsStateItem): #, Qt.QGraphicsItemG
     def setText(self, text):
         super(QPushButton, self).setText(text)
 
-    #def clicked(self):
-     #   super(QPushButton, self).clicked()
-
     def setPos(self, x, y, width, height):
         self._x = x
         self._y = y
@@ -1426,6 +1383,57 @@ class QPushButton(Qt.QPushButton, TaurusGraphicsStateItem): #, Qt.QGraphicsItemG
         self.zValue = p
     def paint(self,painter,option,widget):
         print "paint Tomek"
+
+class QCheckBox(Qt.QCheckBox, TaurusGraphicsStateItem): #, Qt.QGraphicsItemGroup, Qt.QGraphicsItem):
+    def __init__(self, name=None, parent=None, scene=None):
+        name = name or self.__class__.__name__
+        #name = "Button"
+        #text = self.text
+        #Qt.QPushButton.__init__(self, parent, scene)
+        self.call__init__wo_kw(Qt.QCheckBox, parent, scene)
+        self.call__init__(TaurusGraphicsStateItem, name, parent)
+        #self.parentItem = Qt.QPushButton
+        self._x = 0
+        self._y = 0
+        self._width = 0
+        self._high = 0
+        #self.pressed.connect(self.onClicked)
+        #self.connect(self, Qt.SIGNAL('clicked()'), self.onClicked)
+        #self.clicked.connect(self.onClicked)
+
+    def updateStyle(self):
+        #self.display(1000)
+        v = self.getModelValueObj()
+        print "\n\n V w checkbox: ", v
+        if v.value == False:
+            pass
+        elif v.value == True:
+            pass
+        #self.display(v.value)
+
+        #if self.getShowQuality():
+
+    def mousePressEvent(self,event):
+        print "\n\n SUPER!!!! CheckBox!!"
+        super(QCheckBox, self).mousePressEvent(event)
+        #event.accept()
+        #print "\n Overloaded event: ", event, "\n"
+
+    def setPen(self, pen):
+        pass
+
+    def onClicked(self):
+        print "\n\n onClicked!!! \n\n"
+
+    #def mousePressEvent(self, e):
+     #   super(QPushButto, self).mousePressEvent(e)
+      #  print "\n\n Mouse \n\n"
+
+    def setPos(self, x, y):
+        self.move(x, y)
+
+    def setZValue(self, p):
+        pass
 
 class QComboBox(Qt.QComboBox, TaurusGraphicsStateItem):
 
@@ -1439,7 +1447,7 @@ class QComboBox(Qt.QComboBox, TaurusGraphicsStateItem):
         self.call__init__(TaurusGraphicsStateItem, name, parent)
         #self.parentItem = Qt.QComboBox
         self.view().pressed.connect(self.pre)
-        self.view().activated.connect(self.activatedt)
+        self.view().activated.connect(self.activated)
         self.view().clicked.connect(self.cli)
 
 
@@ -1454,9 +1462,10 @@ class QComboBox(Qt.QComboBox, TaurusGraphicsStateItem):
         print "\n\n pree", index
         it = self.model().itemFromIndex(index).text()
         print "\n\n ", it
+        #self.hidePopup()
 
 
-    def activatedt(self):
+    def activated(self):
         print "\n\n activ"
 
 
@@ -1465,29 +1474,17 @@ class QComboBox(Qt.QComboBox, TaurusGraphicsStateItem):
 
 
     def mousePressEvent(self,mouseEvent):
-        #self.debug('In TaurusGraphicsScene.mousePressEvent(%s,%s))'%(str(type(mouseEvent)),str(mouseEvent.button())))
-        #print "\n\n 'In TaurusGraphicsScene.mousePressEvent(%s,%s)),", str(type(mouseEvent)),str(mouseEvent.button())
-
         super(QComboBox, self).mousePressEvent(mouseEvent)
-
-
-
-
-   # def mousePressEvent(self,event):
-    #    print "\n\n SUPER!!!! Combo!!"
-     #   super(QComboBox, self).mousePressEvent(event)
-        #event.accept()
-        #print "\n Overloaded event: ", event, "\n"
 
     def onClicked(self):
         print "\n\n\n\n onClicked!!! \n\n"
 
     def setZValue(self, p):
         pass
+
     def addItem(self, txt):
         super(QComboBox, self).addItem(txt)
-    #def showPopup(self):
-     #   super(QComboBox, self).showPopup()
+
     def setPos(self, x, y, width, height):
         self._x = x
         self._y = y
@@ -1496,6 +1493,43 @@ class QComboBox(Qt.QComboBox, TaurusGraphicsStateItem):
         self.move(x, y)
 
 
+
+class QLCDNumber(TaurusLCD, TaurusGraphicsAttributeItem):
+    def __init__(self, name=None, parent=None, scene=None):
+        name = name or self.__class__.__name__
+        #text = self.text
+        #print "\n\n w COMBO \n"
+        #Qt.QComboBox.__init__(self, parent, scene)
+
+        TaurusLCD.__init__(self, parent)
+        self.call__init__(TaurusGraphicsAttributeItem, name, parent)
+
+    def updateStyle(self):
+        #self.display(1000)
+        v = self.getModelValueObj()
+        self.display(v.value)
+        #print "\n\n V w LCD: ", v
+        #if self.getShowQuality():
+
+    def paint(self,painter,option,widget):
+        #print "\n\n Paint III \n\n"
+        #print "debug : ", self.getName(),self._currText,self._currHtmlText
+        #self.debug('TaurusTextAttributeItem(%s,%s,%s)'%(self.getName(),self._currText,self._currHtmlText))
+        if self._currHtmlText:
+            self.setHtml(self._currHtmlText)
+            self.display(200)
+        else:
+            #self._currText = 'TY'
+            self.display(200)
+            #self.display(self._currText or '')
+
+
+    def setZValue(self, p):
+        print "ZValue: ", p
+    def setPos(self, x, y):
+        #self._x = x
+        #self._y = y
+        self.move(x, y)
 
 class QLineEdit(Qt.QLineEdit, TaurusGraphicsStateItem):
     def __init__(self, name=None, parent=None, scene=None):
@@ -1547,9 +1581,161 @@ class QLineEdit(Qt.QLineEdit, TaurusGraphicsStateItem):
         self._height = height
         self.move(x, y)
 
-from taurus.qt.qtgui.input import TaurusValueLineEdit
+
+
+
+
+class TTaurusPlot(TaurusPlot, TaurusGraphicsStateItem):
+    def __init__(self, name=None, parent=None, scene=None):
+        name = name or self.__class__.__name__
+        #text = self.text
+        #print "\n\n w COMBO \n"
+        #Qt.QComboBox.__init__(self, parent, scene)
+        TaurusPlot.__init__(self , parent)
+        self.call__init__(TaurusGraphicsStateItem, name, parent)
+        #self.call__init__(TaurusPlot, name, parent)
+
+    def setZValue(self, p):
+        pass
+
+    #def setPen(self, pen):
+     #   pass
+
+    def setPos(self, x, y):
+        self.move(x, y)
+
+
+
+class TTaurusTrend(TaurusTrend):
+    def __init__(self, name=None, parent=None, scene=None):
+        name = name or self.__class__.__name__
+        #text = self.text
+        #print "\n\n w COMBO \n"
+        #Qt.QComboBox.__init__(self, parent, scene)
+        TaurusTrend.__init__(self , parent)
+        #self.call__init__(TaurusPlot, name, parent)
+
+    def setPen(self, pen):
+        pass
+
+    def setPos(self, x, y):
+        self.move(x, y)
+
+    def setZValue(self, p):
+        pass
+
+
+class TTaurusForm(TaurusForm):
+    def __init__(self, name=None, parent=None, scene=None):
+        name = name or self.__class__.__name__
+        #text = self.text
+        #print "\n\n w COMBO \n"
+        #Qt.QComboBox.__init__(self, parent, scene)
+        TaurusForm.__init__(self , parent)
+        #self.call__init__(TaurusPlot, name, parent)
+
+    def setPen(self, pen):
+        pass
+
+    def setZValue(self, p):
+        pass
+
+    def setPos(self, x, y):
+        self.move(x, y)
+
+class TTaurusValueLineEdit(TaurusValueLineEdit):
+    def __init__(self, name=None, parent=None, scene=None):
+        name = name or self.__class__.__name__
+        #text = self.text
+        #print "\n\n w COMBO \n"
+        #Qt.QComboBox.__init__(self, parent, scene)
+        TaurusValueLineEdit.__init__(self , parent)
+        #self.call__init__(TaurusPlot, name, parent)
+
+    def setPen(self, pen):
+        pass
+
+    def setZValue(self, p):
+        pass
+
+    def setPos(self, x, y):
+        self.move(x, y)
+
+class TTaurusLabel(TaurusLabel):
+    def __init__(self, name=None, parent=None, scene=None):
+        name = name or self.__class__.__name__
+        #text = self.text
+        #print "\n\n w COMBO \n"
+        #Qt.QComboBox.__init__(self, parent, scene)
+        TaurusLabel.__init__(self , parent)
+        #self.call__init__(TaurusPlot, name, parent)
+
+    def setPen(self, pen):
+        pass
+
+    def setZValue(self, p):
+        pass
+
+    def setPos(self, x, y, width, hight):
+        self.move(x, y)
+        #self.setGeometry(200,300, 100, 100)
+
+class TTaurusLed(TaurusLed):
+    def __init__(self, name=None, parent=None, scene=None):
+        name = name or self.__class__.__name__
+        #text = self.text
+        #print "\n\n w COMBO \n"
+        #Qt.QComboBox.__init__(self, parent, scene)
+        TaurusLed.__init__(self , parent)
+        #self.call__init__(TaurusPlot, name, parent)
+
+    def setZValue(self, p):
+        pass
+
+    def setPen(self, pen):
+        pass
+
+    def setPos(self, x, y):
+        self.move(x, y)
+
+
+class TTaurusCommandButton(TaurusCommandButton):
+    def __init__(self, name=None, parent=None, scene=None):
+        name = name or self.__class__.__name__
+        #text = self.text
+        #print "\n\n w COMBO \n"
+        #Qt.QComboBox.__init__(self, parent, scene)
+        TaurusCommandButton.__init__(self , parent)
+        #self.call__init__(TaurusPlot, name, parent)
+        print "\n\n CommandButton \n"
+
+
+    def mousePressEvent(self,event):
+        super(TTaurusCommandButton, self).mousePressEvent(event)
+        print "command"
+
+    def setZValue(self, p):
+        pass
+
+    def setPen(self, pen):
+        pass
+
+    def setPos(self, x, y):
+        self.move(x, y)
+
+
 TYPE_TO_GRAPHICS = {
-    None : { "LineEdit" : QLineEdit,
+    None : {
+             "LCDNumber" : QLCDNumber,
+             "CheckBox" : QCheckBox,
+             "TaurusCommandButton" : TTaurusCommandButton,
+             "TaurusLed" : TTaurusLed,
+             "TaurusLabel" : TTaurusLabel,
+             "TaurusValueLineEdit" : TTaurusValueLineEdit,
+             "TaurusForm" : TTaurusForm,
+             "TaurusTrend" : TTaurusTrend,
+             "TaurusPlot" : TTaurusPlot,
+             "LineEdit" : QLineEdit,
              "Bar"      : QPushButton,
              "Button"   : QPushButton,
              "Combo"    : QComboBox,
@@ -1564,7 +1750,12 @@ TYPE_TO_GRAPHICS = {
              "Image"          : Qt.QGraphicsPixmapItem,
              "Spline"         : QSpline, },
 
-    TaurusDevice : { "Rectangle"      : TaurusRectStateItem,
+    TaurusDevice : {
+                            "LCDNumber" : QLCDNumber,
+                            "CheckBox" : QCheckBox,
+                            "TaurusPlot" : TTaurusPlot,
+                            "TaurusCommandButton" : TTaurusCommandButton,
+                            "Rectangle"      : TaurusRectStateItem,
                             "Button"   : QPushButton,
                             "LineEdit" : QLineEdit,
                            "RoundRectangle" : TaurusRoundRectStateItem,
@@ -1577,7 +1768,12 @@ TYPE_TO_GRAPHICS = {
                            "Image"          : Qt.QGraphicsPixmapItem,
                            "Spline"         : TaurusSplineStateItem, },
 
-    TaurusAttribute : { "Rectangle"      : TaurusRectStateItem,
+    TaurusAttribute : {
+                            "LCDNumber" : QLCDNumber,
+                            "CheckBox" : QCheckBox,
+                            "TaurusPlot" : TTaurusPlot,
+                            "TaurusCommandButton" : TTaurusCommandButton,
+                            "Rectangle"      : TaurusRectStateItem,
                             "Button"   : QPushButton,
                             "LineEdit" : QLineEdit,
                            "RoundRectangle" : TaurusRoundRectStateItem,

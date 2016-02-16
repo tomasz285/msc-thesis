@@ -45,6 +45,9 @@ from taurus.qt.qtcore.mimetypes import TAURUS_ATTR_MIME_TYPE, TAURUS_DEV_MIME_TY
 from taurus.qt.qtgui.base import TaurusBaseWidget
 import jdraw_parser
 
+#import taurus.qt.qtgui.graphic.jdraw.TaurusJDrawSynopticsView
+#from taurus.qt.qtgui.graphic import TaurusJDrawSynopticsView
+
 class TaurusJDrawSynopticsView(Qt.QGraphicsView, TaurusBaseWidget):
     '''
     Taurus Class that visualizes Synoptics drawn with the JDraw tool (by ESRF). It is equivalent to ATK Synoptic Player (Java).
@@ -478,6 +481,7 @@ def jdraw_view_main():
         #tv.setModel(m)
     #print "\n\n\n form \n\n\n"
     form = taurus.qt.qtgui.graphic.TaurusJDrawSynopticsView(designMode=False)
+    #form = TaurusJDrawSynopticsView(designMode=False)
     form.show()
 
     #Tomek start
